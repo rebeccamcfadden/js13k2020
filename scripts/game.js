@@ -21,7 +21,7 @@ function Game() {
     this.grid.addNode(this.start);
     
     this.grid.setLevel(0);
-    
+
     for (var i = 0; i < 8; i++) {
         this.grid.addPlatform(this.PLATFORM_WIDTH);
     }
@@ -44,7 +44,7 @@ Game.prototype = {
     PLAYER_WALK_SPEED: 270,
     PLAYER_WALK_ACCELERATION: 3500,
     PLAYER_SPAWN_X: 288,
-    PLAYER_SPAWN_Y: 300,
+    PLAYER_SPAWN_Y: 280,
     KEY_JUMP: 87,
     KEY_LEFT: 65,
     KEY_RIGHT: 68,
@@ -122,10 +122,10 @@ Game.prototype = {
         }
         
         if (this.player.x < 0) {
-            this.player.x = 0;
+            this.player.x = this.getCanvas().width;
         }
-        else if (this.player.x + this.player.width > this.getCanvas().width) {
-            this.player.x = this.getCanvas().width - this.player.width;
+        else if (this.player.x > this.getCanvas().width) {
+            this.player.x = 0;
         }
     },
 

@@ -273,11 +273,13 @@ PlatformerGrid.prototype = {
                this.addPlatform(node.width, true); 
             }
             else {
-                newX = midX + (Math.random() * maxR * plusOrMinus);
-
-                if (Math.abs(newX - node.x) < 48) {
-                    newX += plusOrMinus * 48;
+                for (var i = 0; i < 3; i++) {
+                    newX = midX + (Math.random() * maxR * plusOrMinus);
+                    
+                    newMidX = newX + (node.width / 2);
+                    if (this.distance(midX, newMidX, dy) < maxR) {break;}
                 }
+                
             }
         }
         return {
