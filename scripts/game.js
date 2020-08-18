@@ -19,7 +19,9 @@ function Game() {
 
     this.start = new PlatformerNode((canvas.width - this.PLATFORM_WIDTH)/2, (this.grid.height) * this.GRID_RESOLUTION, this.PLATFORM_WIDTH, 5, "green");
     this.grid.addNode(this.start);
-
+    
+    this.grid.setLevel(0);
+    
     for (var i = 0; i < 8; i++) {
         this.grid.addPlatform(this.PLATFORM_WIDTH);
     }

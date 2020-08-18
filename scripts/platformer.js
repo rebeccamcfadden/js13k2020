@@ -145,6 +145,23 @@ function PlatformerNode(x, y, width, height, color) {
     this.fill_style = color;
 }
 
+PlatformerNode.prototype = {
+    isCollision(x1, x2, w1, w2) {
+        if ((x1 + w1 + 24) >= x2 || (x1 + w1 - 24) >= x2) {
+            if (x1 <= (x2 + w2 + 24) || x1 <= (x2 + w2 - 24)) {
+                return true;
+            }
+            return false;
+        }
+        return false;
+    },
+
+    checkOverlap(node) {
+        return this.isCollision(this.x, node.x, this.width, node.width) &&
+            this.isCollision(this.y, node.y, this.height, node.height);
+    }
+}
+
 // The grid, containing cells and actors colliding with cell walls
 function PlatformerGrid(width, height, resolution, gravity = 2500, friction = 1700) {
     this.width = width + 1;
@@ -166,6 +183,10 @@ PlatformerGrid.prototype = {
     GRID_STROKE_STYLE: "gray",
     GRID_LINE_WIDTH: 0.5,
     EPSILON: 0.0000001,
+
+    setLevel(t) {
+        this.level = 0;
+    },
 
     validateCoordinates(x, y) {
         if (x < 0 || y < 0 || x >= this.width || y >= this.height)
@@ -203,7 +224,16 @@ PlatformerGrid.prototype = {
     },
 
     addNode(node) {
-        this.nodes.push(node);
+        var overlap = false;
+        for (var i = 0; i < this.nodes.length; i++) {
+            const node2 = this.nodes[i];
+            if (node2.checkOverlap(node)) {
+                overlap = true;
+            }
+        }
+        if (!overlap) {
+            this.nodes.push(node);
+        }
     },
 
     removeNode(node) {
@@ -212,6 +242,8 @@ PlatformerGrid.prototype = {
         if (nodeIndex != -1)
             this.nodes.splice(nodeIndex, 1);
 
+        this.level++;
+
         this.addPlatform(node.width);
     },
 
@@ -219,47 +251,45 @@ PlatformerGrid.prototype = {
         return deg * (Math.PI / 180)
     },
 
-    getRandomCoordinates(node) {
-        let maxR = 64;
+    distance(x1, x2, dy) {
+        return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(dy, 2));
+    },
 
+    getRandomCoordinates(node, maxR, recursed) {
         let midX = node.x + (node.width / 2);
-        let theta = Math.random() * this.deg2rad(180);
-        let dx = Math.cos(theta) * maxR;
-        let dy = Math.sin(theta) * maxR;
-        if (dy < 60) {
-            dy = 60;
-            dx *= 2;
-        }
 
-        let newX = dx * (Math.floor(Math.random() * 2) == 1 ? 1 : -1);
-
-        while (Math.abs(node.x + newX) < 48) {
-            newX *= 2;
-        }
-
-        if (newX > 0) {
-            if (node.x + (node.width/2) > 600) {
-                newX += node.x + node.width;
-            } else {
-                newX = node.x - newX;
-            }
-        } else {
-            newX += node.x;
-            if (newX < 0) {
-                newX = Math.abs(newX);
-            }
-        }
-
+        let dy = (Math.random() * (64 - 36)) + 64;
         let newY = node.y - dy;
+        let newX = Math.random() * (600 - node.width);
+        let newMidX = newX + (node.width / 2);
+
+        let plusOrMinus = 1 * (Math.floor(Math.random() * 2) == 1 ? 1 : -1);
+        if (Math.abs(newX - node.x) < 48) {
+            newX += plusOrMinus * 48;
+        }
+
+        if (this.distance(midX, newMidX, dy) > maxR) {
+            if (!recursed) {
+               this.addPlatform(node.width, true); 
+            }
+            else {
+                newX = midX + (Math.random() * maxR * plusOrMinus);
+
+                if (Math.abs(newX - node.x) < 48) {
+                    newX += plusOrMinus * 48;
+                }
+            }
+        }
         return {
             x: newX,
             y: newY
         }
     },
 
-    addPlatform(width) {
+    addPlatform(width, recursed = false) {
+        let maxR = 72 + 8 * Math.floor(this.level / 24);
         const prev = this.nodes[this.nodes.length - 1];
-        coord = this.getRandomCoordinates(prev);
+        coord = this.getRandomCoordinates(prev, maxR, recursed);
         var rand = Math.floor(Math.random() * Object.keys(PLATFORM_COLORS).length);
         var randColorValue = PLATFORM_COLORS[Object.keys(PLATFORM_COLORS)[rand]];
         this.addNode(new PlatformerNode(coord.x, coord.y, width, 5, randColorValue));
@@ -289,7 +319,7 @@ PlatformerGrid.prototype = {
         for (var i = 0; i < this.nodes.length; ++i) {
             node = this.nodes[i];
             node.y -= vy;
-            if (node.y > 500) {
+            if (node.y > 600) {
                 this.removeNode(node);
             }
         }
