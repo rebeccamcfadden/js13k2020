@@ -1,0 +1,13 @@
+  
+#renderer {
+	display: block;
+	margin: 32px auto 32px auto;
+	border: solid;
+	border-width: 1px;
+    border-color: black;
+    background-color: black;
+}
+
+body {
+    background-color: black;
+}
