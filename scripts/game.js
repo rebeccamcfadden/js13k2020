@@ -17,8 +17,12 @@ function Game() {
     // for (var x = 0; x < this.grid.width; ++x)
     //     this.grid.setCeiling(x, this.grid.height - 1, true);
 
-    this.start = new PlatformerNode(0, (this.grid.height -1) * this.GRID_RESOLUTION, (this.grid.width * this.GRID_RESOLUTION), 5, "green");
+    this.start = new PlatformerNode((canvas.width - this.PLATFORM_WIDTH)/2, (this.grid.height) * this.GRID_RESOLUTION, this.PLATFORM_WIDTH, 5, "green");
     this.grid.addNode(this.start);
+
+    for (var i = 0; i < 8; i++) {
+        this.grid.addPlatform(this.PLATFORM_WIDTH);
+    }
 
     // Create a player
     this.player = new PlatformerActor(
@@ -34,14 +38,15 @@ function Game() {
 Game.prototype = {
     GRID_RESOLUTION: 32,
     PLAYER_SIZE: 24,
-    PLAYER_JUMP_SPEED: -650,
+    PLAYER_JUMP_SPEED: -750,
     PLAYER_WALK_SPEED: 270,
     PLAYER_WALK_ACCELERATION: 3500,
     PLAYER_SPAWN_X: 288,
-    PLAYER_SPAWN_Y: 200,
+    PLAYER_SPAWN_Y: 300,
     KEY_JUMP: 87,
     KEY_LEFT: 65,
     KEY_RIGHT: 68,
+    PLATFORM_WIDTH: 120,
 
     addListeners() {
         window.addEventListener("keydown", this.keyDown.bind(this));
@@ -106,11 +111,11 @@ Game.prototype = {
     },
 
     movePlayer(timeStep) {
-        if (this.rightDown && this.player.onGround) {
+        if (this.rightDown) {
             this.player.setvx(Math.min(this.player.vx + this.PLAYER_WALK_ACCELERATION * timeStep, this.PLAYER_WALK_SPEED));
         }
 
-        if (this.leftDown && this.player.onGround) {
+        if (this.leftDown) {
             this.player.setvx(Math.max(this.player.vx - this.PLAYER_WALK_ACCELERATION * timeStep, -this.PLAYER_WALK_SPEED));
         }
         

@@ -1,3 +1,12 @@
+var PLATFORM_COLORS = {
+    RED: "red",
+    ORANGE: "orange",
+    YELLOW: "yellow",
+    GREEN: "green",
+    BLUE: "blue",
+    PURPLE: "purple"
+}
+
 // Grid cell, can have a wall on the left and a ceiling on top
 function PlatformerGridCell() {
     this.wall = false;
@@ -58,85 +67,39 @@ PlatformerActor.prototype = {
         return Math.floor((x + PlatformerGrid.prototype.EPSILON) / resolution);
     },
 
-    collideCellBottom(resolution) {
-        this.onGround = true;
-        this.vy = 0;
-        this.y = this.getCellBottom(this.y, resolution) * resolution - this.height;
-    },
-
-    collideCellTop(resolution) {
-        this.vy = 0;
-        this.y = this.getCellTop(this.yp, resolution) * resolution;
-    },
-
-    collideCellRight(resolution) {
-        this.vx = 0;
-        this.x = this.getCellRight(this.x, resolution) * resolution - this.width;
-    },
-
-    collideCellLeft(resolution) {
-        this.vx = 0;
-        this.x = this.getCellLeft(this.xp, resolution) * resolution;
-    },
-
     getCollisionSide(node) {
         if (this.x <= node.x) {
-            if (this.y < node.y) {
-                return 0;
-            }
-            else if ((this.y + this.height) > node.y) {
-                return 1;
-            }
-            else {
-                return 2;
-            }
-        }
-        else {
             if (this.y >= node.y) {
                 return 0;
+            } else if ((this.y + this.height) > node.y) {
+                return 1;
+            } else {
+                return 2;
             }
-            else if ((this.y + this.height) < node.y) {
+        } else {
+            if (this.y >= node.y) {
+                return 0;
+            } else if ((this.y + this.height) < node.y) {
                 return 3;
-            }
-            else {
+            } else {
                 return 2;
             }
         }
     },
 
-    collide(node) {
-        switch (this.getCollisionSide(node)) {
-            case 0:
-                //bottom collision
-                this.vy = 0;
-                break;
-            case 1:
-                //left collision
-                this.vx = 0;
-                break;
-            case 2:
-                //top collision
-                this.onGround = true;
-                this.vy = 0;
-                node.y = this.y + this.height;
-                break;
-            case 3:
-                //right collision
-                this.vx = 0;
-                break;
-            default:
-                //ERROR
-                console.log("ERROR - invalid collision side");
-                break;
+    collide(node, grid) {
+        this.setColor(node.fill_style);
+        if (this.y + (this.height/2) < node.y) {
+            this.setColor(node.fill_style);
+            this.onGround = true;
+            grid.updateNodePositions(node.y - this.y - this.width);
+            this.vy = 0;
         }
     },
 
     isCollision(x1, x2, w1, w2) {
-        if ((x1 + w1 + PlatformerGrid.prototype.EPSILON) >= x2 || (x1 + w1 - PlatformerGrid.prototype.EPSILON) >= x2) {
-            if (x1 <= (x2 + w2 + PlatformerGrid.prototype.EPSILON) || x1 <= (x2 + w2 - PlatformerGrid.prototype.EPSILON)) {
+        if ((x1 + w1) >= x2 && x1 <= (x2 + w2)) {
                 return true;
-            }
-            return false;
         }
         return false;
     },
@@ -248,6 +211,58 @@ PlatformerGrid.prototype = {
 
         if (nodeIndex != -1)
             this.nodes.splice(nodeIndex, 1);
+
+        this.addPlatform(node.width);
+    },
+
+    deg2rad(deg) {
+        return deg * (Math.PI / 180)
+    },
+
+    getRandomCoordinates(node) {
+        let maxR = 64;
+
+        let midX = node.x + (node.width / 2);
+        let theta = Math.random() * this.deg2rad(180);
+        let dx = Math.cos(theta) * maxR;
+        let dy = Math.sin(theta) * maxR;
+        if (dy < 60) {
+            dy = 60;
+            dx *= 2;
+        }
+
+        let newX = dx * (Math.floor(Math.random() * 2) == 1 ? 1 : -1);
+
+        while (Math.abs(node.x + newX) < 48) {
+            newX *= 2;
+        }
+
+        if (newX > 0) {
+            if (node.x + (node.width/2) > 600) {
+                newX += node.x + node.width;
+            } else {
+                newX = node.x - newX;
+            }
+        } else {
+            newX += node.x;
+            if (newX < 0) {
+                newX = Math.abs(newX);
+            }
+        }
+
+        let newY = node.y - dy;
+        return {
+            x: newX,
+            y: newY
+        }
+    },
+
+    addPlatform(width) {
+        const prev = this.nodes[this.nodes.length - 1];
+        coord = this.getRandomCoordinates(prev);
+        var rand = Math.floor(Math.random() * Object.keys(PLATFORM_COLORS).length);
+        var randColorValue = PLATFORM_COLORS[Object.keys(PLATFORM_COLORS)[rand]];
+        this.addNode(new PlatformerNode(coord.x, coord.y, width, 5, randColorValue));
     },
 
     addActor(actor) {
@@ -265,7 +280,7 @@ PlatformerGrid.prototype = {
         for (var i = 0; i < this.nodes.length; ++i) {
             const node = this.nodes[i];
             if (actor.checkNodeCollision(node)) {
-                actor.collide(node);
+                actor.collide(node, this);
             }
         }
     },
@@ -274,6 +289,9 @@ PlatformerGrid.prototype = {
         for (var i = 0; i < this.nodes.length; ++i) {
             node = this.nodes[i];
             node.y -= vy;
+            if (node.y > 500) {
+                this.removeNode(node);
+            }
         }
     },
 
@@ -285,7 +303,7 @@ PlatformerGrid.prototype = {
             if (actor.vx != 0) {
                 var vx = actor.vx * timeStep;
                 actor.xp = actor.x;
-                
+
                 actor.limitXSpeed(timeStep);
                 actor.x += vx;
 
@@ -328,12 +346,14 @@ PlatformerGrid.prototype = {
                 var vy = actor.vy * timeStep;
                 actor.yp = actor.y;
                 // actor.y += vy;
-                
+
                 // actor.limitYSpeed(timeStep); // Dont actually know what this does lol
                 this.updateNodePositions(vy);
             }
-
-            this.checkCollisions(actor);
+            if (actor.vy >= 0) {
+                this.checkCollisions(actor);
+            }
+            
         }
     },
 
@@ -362,8 +382,9 @@ PlatformerGrid.prototype = {
 
             context.fillStyle = actor.fill_style;
             context.beginPath();
-            context.rect(actor.x, actor.y, actor.width, actor.height);
-            context.fill();
+            context.fillRect(actor.x - 2, actor.y - 2, actor.width + 4, actor.height + 4);
+            context.fillStyle = "white";
+            context.fillRect(actor.x, actor.y, actor.width, actor.height);
         }
     },
 
