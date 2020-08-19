@@ -1,6 +1,4 @@
 function Game() {
-    var canvas = this.getCanvas();
-
     this.gridX = this.gridY = -1;
     this.gridWall = true;
 
@@ -8,31 +6,7 @@ function Game() {
     this.leftDown = false;
     this.rightDown = false;
 
-    // Create a grid with a floor over its entire width
-    this.grid = new PlatformerGrid(
-        Math.floor(canvas.width / this.GRID_RESOLUTION),
-        Math.floor(canvas.height / this.GRID_RESOLUTION),
-        this.GRID_RESOLUTION);
-
-    // for (var x = 0; x < this.grid.width; ++x)
-    //     this.grid.setCeiling(x, this.grid.height - 1, true);
-
-    this.start = new PlatformerNode((canvas.width - this.PLATFORM_WIDTH)/2, (this.grid.height) * this.GRID_RESOLUTION, this.PLATFORM_WIDTH, 5, "green");
-    this.grid.addNode(this.start);
-    
-    this.grid.setLevel(0);
-
-    for (var i = 0; i < 8; i++) {
-        this.grid.addPlatform(this.PLATFORM_WIDTH);
-    }
-
-    // Create a player
-    this.player = new PlatformerActor(
-        this.PLAYER_SPAWN_X,
-        this.PLAYER_SPAWN_Y,
-        this.PLAYER_SIZE,
-        this.PLAYER_SIZE);
-    this.grid.addActor(this.player);
+    this.init();
 
     this.addListeners();
 };
@@ -50,6 +24,36 @@ Game.prototype = {
     KEY_RIGHT: 68,
     PLATFORM_WIDTH: 120,
 
+    init() {
+        var canvas = this.getCanvas();
+        
+        // Create a grid with a floor over its entire width
+        this.grid = new PlatformerGrid(
+            Math.floor(canvas.width / this.GRID_RESOLUTION),
+            Math.floor(canvas.height / this.GRID_RESOLUTION),
+            this.GRID_RESOLUTION);
+
+        // for (var x = 0; x < this.grid.width; ++x)
+        //     this.grid.setCeiling(x, this.grid.height - 1, true);
+
+        this.start = new PlatformerNode((canvas.width - this.PLATFORM_WIDTH) / 2, (this.grid.height) * this.GRID_RESOLUTION, this.PLATFORM_WIDTH, 5, "green");
+        this.grid.addNode(this.start);
+
+        this.grid.setLevel(0);
+
+        for (var i = 0; i < 8; i++) {
+            this.grid.addPlatform(this.PLATFORM_WIDTH);
+        }
+
+        // Create a player
+        this.player = new PlatformerActor(
+            this.PLAYER_SPAWN_X,
+            this.PLAYER_SPAWN_Y,
+            this.PLAYER_SIZE,
+            this.PLAYER_SIZE);
+        this.grid.addActor(this.player);
+    },
+
     addListeners() {
         window.addEventListener("keydown", this.keyDown.bind(this));
         window.addEventListener("keyup", this.keyUp.bind(this));
@@ -57,6 +61,16 @@ Game.prototype = {
 
     getCanvas() {
         return document.getElementById("renderer");
+    },
+
+    gameOver() {
+        var canvas = this.getCanvas();
+        var context = canvas.getContext("2d");
+
+        // Clear canvas
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        this.init();
+        this.run();
     },
 
     run() {
@@ -107,6 +121,10 @@ Game.prototype = {
 
         this.movePlayer(timeStep);
         this.grid.update(timeStep);
+        if (this.grid.nodes.length == 0) {
+            this.gameOver();
+            return;
+        }
         this.render(timeStep);
 
         window.requestAnimationFrame(this.animate.bind(this));
@@ -120,11 +138,10 @@ Game.prototype = {
         if (this.leftDown) {
             this.player.setvx(Math.max(this.player.vx - this.PLAYER_WALK_ACCELERATION * timeStep, -this.PLAYER_WALK_SPEED));
         }
-        
+
         if (this.player.x < 0) {
             this.player.x = this.getCanvas().width;
-        }
-        else if (this.player.x > this.getCanvas().width) {
+        } else if (this.player.x > this.getCanvas().width) {
             this.player.x = 0;
         }
     },

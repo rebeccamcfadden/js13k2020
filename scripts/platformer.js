@@ -37,36 +37,6 @@ PlatformerActor.prototype = {
             this.onGround = false;
     },
 
-    getXCells(resolution) {
-        return {
-            start: Math.floor((this.x + PlatformerGrid.prototype.EPSILON) / resolution),
-            end: Math.floor((this.x + this.width - PlatformerGrid.prototype.EPSILON) / resolution)
-        };
-    },
-
-    getYCells(resolution) {
-        return {
-            start: Math.floor((this.y + PlatformerGrid.prototype.EPSILON) / resolution),
-            end: Math.floor((this.y + this.height - PlatformerGrid.prototype.EPSILON) / resolution)
-        };
-    },
-
-    getCellBottom(y, resolution) {
-        return Math.floor((y + this.height - PlatformerGrid.prototype.EPSILON) / resolution);
-    },
-
-    getCellTop(y, resolution) {
-        return Math.floor((y + PlatformerGrid.prototype.EPSILON) / resolution);
-    },
-
-    getCellRight(x, resolution) {
-        return Math.floor((x + this.width - PlatformerGrid.prototype.EPSILON) / resolution);
-    },
-
-    getCellLeft(x, resolution) {
-        return Math.floor((x + PlatformerGrid.prototype.EPSILON) / resolution);
-    },
-
     getCollisionSide(node) {
         if (this.x <= node.x) {
             if (this.y >= node.y) {
@@ -90,7 +60,9 @@ PlatformerActor.prototype = {
     collide(node, grid) {
         this.setColor(node.fill_style);
         if (this.y + (this.height/2) < node.y) {
+            swapColor = this.fill_style;
             this.setColor(node.fill_style);
+            node.setColor(swapColor);
             this.onGround = true;
             grid.updateNodePositions(node.y - this.y - this.width);
             this.vy = 0;
@@ -107,22 +79,6 @@ PlatformerActor.prototype = {
     checkNodeCollision(node) {
         return this.isCollision(this.x, node.x, this.width, node.width) &&
             this.isCollision(this.y, node.y, this.height, node.height);
-    },
-
-    limitXSpeed(timeStep) {
-        if (this.vx * timeStep < -this.width + PlatformerGrid.prototype.EPSILON)
-            this.vx = (-this.width + PlatformerGrid.prototype.EPSILON) / timeStep;
-
-        if (this.vx * timeStep > this.width - PlatformerGrid.prototype.EPSILON)
-            this.vx = (this.width - PlatformerGrid.prototype.EPSILON) / timeStep;
-    },
-
-    limitYSpeed(timeStep) {
-        if (this.vy * timeStep < -this.height + PlatformerGrid.prototype.EPSILON)
-            this.vy = (-this.height + PlatformerGrid.prototype.EPSILON) / timeStep;
-
-        if (this.vy * timeStep > this.height - PlatformerGrid.prototype.EPSILON)
-            this.vy = (this.height - PlatformerGrid.prototype.EPSILON) / timeStep;
     },
 
     getColor() {
@@ -159,6 +115,10 @@ PlatformerNode.prototype = {
     checkOverlap(node) {
         return this.isCollision(this.x, node.x, this.width, node.width) &&
             this.isCollision(this.y, node.y, this.height, node.height);
+    },
+
+    setColor(color) {
+        this.fill_style = color;
     }
 }
 
@@ -243,8 +203,10 @@ PlatformerGrid.prototype = {
             this.nodes.splice(nodeIndex, 1);
 
         this.level++;
-
-        this.addPlatform(node.width);
+        if (node.y > -200) {
+            this.addPlatform(node.width);
+        }
+        
     },
 
     deg2rad(deg) {
@@ -321,7 +283,7 @@ PlatformerGrid.prototype = {
         for (var i = 0; i < this.nodes.length; ++i) {
             node = this.nodes[i];
             node.y -= vy;
-            if (node.y > 600) {
+            if (node.y > 600 || node.y < -200) {
                 this.removeNode(node);
             }
         }
@@ -336,7 +298,6 @@ PlatformerGrid.prototype = {
                 var vx = actor.vx * timeStep;
                 actor.xp = actor.x;
 
-                actor.limitXSpeed(timeStep);
                 actor.x += vx;
 
                 // Check if actor is still on ground
@@ -379,10 +340,9 @@ PlatformerGrid.prototype = {
                 actor.yp = actor.y;
                 // actor.y += vy;
 
-                // actor.limitYSpeed(timeStep); // Dont actually know what this does lol
                 this.updateNodePositions(vy);
             }
-            if (actor.vy >= 0) {
+            if (actor.vy >= 0 || actor.onGround) {
                 this.checkCollisions(actor);
             }
             
@@ -433,7 +393,6 @@ PlatformerGrid.prototype = {
 
     draw(context) {
         this.drawGrid(context);
-        // this.drawWalls(context);
         this.drawActors(context);
         this.drawNodes(context);
     }
